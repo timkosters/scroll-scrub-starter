@@ -4,15 +4,26 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>{{NAME}}</title>
-<meta name="description" content="Scroll-scrubbed canvas image sequence." />
+<meta name="description" content="{{DESCRIPTION}}" />
+
+<!-- OpenGraph + Twitter card: makes shared links show a preview -->
+<meta property="og:title" content="{{NAME}}" />
+<meta property="og:description" content="{{DESCRIPTION}}" />
+<meta property="og:image" content="{{OG_IMAGE}}" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="{{NAME}}" />
+<meta name="twitter:description" content="{{DESCRIPTION}}" />
+<meta name="twitter:image" content="{{OG_IMAGE}}" />
+
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
     color: #1a2540;
     font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
     overscroll-behavior: none;
-    background: #f7f5ee;
   }
+  /* Default: graph paper. If --bg is passed, override takes precedence via the second rule. */
   body {
     background-color: #f7f5ee;
     background-image:
@@ -27,6 +38,7 @@
       20px 20px;
     background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
   }
+  body { {{BG_STYLE}} }
   .stage {
     position: sticky;
     top: 0;
@@ -94,15 +106,38 @@
     backdrop-filter: blur(4px);
   }
   .hint.hidden { opacity: 0; }
+
+  /* Reduced-motion fallback: show a static poster instead of scroll-scrub */
+  .poster-fallback {
+    display: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .stage { position: relative; height: auto; }
+    .spacer { display: none; }
+    .hint { display: none; }
+    canvas, .loader { display: none; }
+    .poster-fallback {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .poster-fallback img {
+      display: block; width: 100%; height: 100%; object-fit: cover;
+    }
+  }
+
   @media (max-width: 640px) {
-    .canvas-wrap { width: 88vw !important; max-width: 88vw !important; }
+    .canvas-wrap { width: 92vw !important; max-width: 92vw !important; }
   }
 </style>
 </head>
 <body>
   <div class="stage">
     <div class="canvas-wrap">
-      <canvas id="canvas"></canvas>
+      <canvas id="canvas" role="img" aria-label="{{DESCRIPTION}}"></canvas>
+      <div class="poster-fallback">
+        <img src="./og-image.jpg" alt="{{DESCRIPTION}}" />
+      </div>
       <div class="loader" id="loader">
         <div>
           <div class="loader-label">Loading</div>
@@ -116,10 +151,15 @@
 
 <script>
 (() => {
+  // Honor reduced-motion: skip the whole scroll pipeline, let the poster show.
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+
   const FRAME_COUNT = {{FRAME_COUNT}};
   const FRAME_PAD = 4;
   const FRAME_EXT = "{{FRAME_EXT}}";
-  const FRAME_PATH = (i) => `/frames/f_${String(i + 1).padStart(FRAME_PAD, '0')}.${FRAME_EXT}`;
+  const FRAME_PATH = (i) => `./frames/f_${String(i + 1).padStart(FRAME_PAD, '0')}.${FRAME_EXT}`;
   const CONCURRENCY = 6;
 
   const canvas = document.getElementById('canvas');

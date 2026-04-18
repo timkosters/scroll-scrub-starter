@@ -4,7 +4,28 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>{{NAME}}</title>
-<meta name="description" content="Edge Esmeralda 2026. Scroll to build a city from an empty field. A blueprint microsite demo." />
+<meta name="description" content="{{DESCRIPTION}}" />
+
+<meta property="og:title" content="{{NAME}}" />
+<meta property="og:description" content="{{DESCRIPTION}}" />
+<meta property="og:image" content="{{OG_IMAGE}}" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="{{NAME}}" />
+<meta name="twitter:description" content="{{DESCRIPTION}}" />
+<meta name="twitter:image" content="{{OG_IMAGE}}" />
+
+<!--
+  Blueprint scroll-scrub template.
+  Customize these areas (search for "EDIT"):
+    - Hero title/subtitle/meta
+    - Poetry lines (large type behind the canvas)
+    - Side annotations (phase markers)
+    - CTA link at the bottom
+    - Footer credit line
+  NOTE: this template fetches Google Fonts. Self-host the fonts if you prefer no external calls.
+-->
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -40,6 +61,8 @@
     background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
     position: relative;
   }
+  /* --bg override if user passed one */
+  body { {{BG_STYLE}} }
   body::after {
     content: "";
     position: fixed;
@@ -601,13 +624,24 @@
     .statusbar-seg .hide-mobile { display: none; }
     .hero-meta > div { padding: 0 12px; }
   }
+
+  /* Reduced-motion: replace canvas with static poster */
+  .poster-fallback { display: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .stage-wrapper { height: auto; }
+    .stage { position: relative; padding: 20px 40px; }
+    .canvas-wrap canvas, .loader { display: none; }
+    .canvas-wrap .poster-fallback { display: block; width: 100%; height: 100%; }
+    .canvas-wrap .poster-fallback img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .annotations, .ruler { display: none; }
+  }
 </style>
 </head>
 <body>
 
 <div class="grain" aria-hidden="true"></div>
 
-<!-- Top status bar -->
+<!-- Top status bar — EDIT: change labels to match your project -->
 <div class="statusbar">
   <div class="statusbar-seg">
     <span><span class="dot"></span>LIVE SHEET</span>
@@ -618,47 +652,47 @@
     <span>REV A</span>
     <span class="sep">/</span>
     <span class="hide-mobile">SCALE 1:1</span>
-    <span class="sep">/</span>
-    <span>EE · 26</span>
   </div>
 </div>
 
-<!-- Hero -->
+<!-- Hero — EDIT: title, subtitle, and the 4 meta columns -->
 <section class="hero">
   <div class="corner-bl"></div>
   <div class="corner-br"></div>
-  <div class="hero-eyebrow">EDGE ESMERALDA 2026</div>
-  <h1 class="hero-title">A Blueprint<br>For A <span>Five-Week</span><br>Society</h1>
-  <p class="hero-sub">Scroll to build a popup city from an empty field in Healdsburg, California</p>
+  <div class="hero-eyebrow">A Technical Drawing</div>
+  <h1 class="hero-title">Scroll<br>To See It<br><span>Unfold</span></h1>
+  <p class="hero-sub">A scroll-scrubbed sequence rendered in a blueprint aesthetic</p>
   <div class="hero-meta">
-    <div><label>Site</label>Healdsburg / CA</div>
-    <div><label>Dates</label>27 May / 30 Jun 2026</div>
-    <div><label>Format</label>5-week residency</div>
+    <div><label>Figure</label>001</div>
+    <div><label>Revision</label>A</div>
+    <div><label>Scale</label>1:1</div>
     <div><label>Sheet</label>001 of 001</div>
   </div>
-  <div class="scroll-cue">↓ SCROLL TO BUILD</div>
+  <div class="scroll-cue">↓ SCROLL TO BEGIN</div>
 </section>
 
 <!-- Sticky scroll-scrub stage -->
 <div class="stage-wrapper" id="stageWrap">
   <div class="stage">
     <div class="canvas-wrap">
-      <canvas id="canvas"></canvas>
+      <canvas id="canvas" role="img" aria-label="{{DESCRIPTION}}"></canvas>
+      <div class="poster-fallback"><img src="./og-image.jpg" alt="{{DESCRIPTION}}"/></div>
 
       <div class="overlay-crosshair tl"></div>
       <div class="overlay-crosshair tr"></div>
       <div class="overlay-crosshair bl"></div>
       <div class="overlay-crosshair br"></div>
 
+      <!-- Poetry lines — EDIT: 4 phrases that appear behind the video as you scroll -->
       <div class="poetry" id="poetry">
-        <div class="poetry-line" data-start="0" data-end="0.22">an <em>empty</em> field</div>
-        <div class="poetry-line" data-start="0.22" data-end="0.48">a <em>village</em> appears</div>
-        <div class="poetry-line" data-start="0.48" data-end="0.74">a <em>society</em> forms</div>
-        <div class="poetry-line" data-start="0.74" data-end="1.01">and then <em>disperses</em></div>
+        <div class="poetry-line" data-start="0" data-end="0.22">the <em>beginning</em></div>
+        <div class="poetry-line" data-start="0.22" data-end="0.48">in <em>motion</em></div>
+        <div class="poetry-line" data-start="0.48" data-end="0.74">reaching <em>peak</em></div>
+        <div class="poetry-line" data-start="0.74" data-end="1.01">the <em>end</em></div>
       </div>
 
-      <div class="stage-label-tl">FIG. 01 / CITY PROTOTYPE</div>
-      <div class="stage-label-tr" id="frameCounter">FRAME 001 / 241</div>
+      <div class="stage-label-tl">FIG. 01 / SEQUENCE</div>
+      <div class="stage-label-tr" id="frameCounter">FRAME 001 / {{FRAME_COUNT}}</div>
       <div class="stage-label-br">SCALE 1:1 / ISO VIEW</div>
 
       <div class="loader" id="loader">
@@ -671,23 +705,23 @@
     </div>
   </div>
 
-  <!-- Side annotations -->
+  <!-- Side annotations — EDIT: 4 phase labels that light up with scroll -->
   <div class="annotations" id="annotations">
     <div class="anno" data-start="0" data-end="0.22">
-      <span class="marker">00 / DAY 00</span>
-      <span class="text">Ground zero empty field</span>
+      <span class="marker">00 / PHASE 01</span>
+      <span class="text">Initial state</span>
     </div>
     <div class="anno" data-start="0.22" data-end="0.48">
-      <span class="marker">01 / WEEK 01</span>
-      <span class="text">First builders arrive</span>
+      <span class="marker">01 / PHASE 02</span>
+      <span class="text">Development begins</span>
     </div>
     <div class="anno" data-start="0.48" data-end="0.74">
-      <span class="marker">02 / WEEK 03</span>
-      <span class="text">City forms, density rises</span>
+      <span class="marker">02 / PHASE 03</span>
+      <span class="text">Structure emerges</span>
     </div>
     <div class="anno" data-start="0.74" data-end="1.01">
-      <span class="marker">03 / WEEK 05</span>
-      <span class="text">Society lives, then disperses</span>
+      <span class="marker">03 / PHASE 04</span>
+      <span class="text">Final form</span>
     </div>
   </div>
 
@@ -703,7 +737,7 @@
   </div>
 </div>
 
-<!-- Spec sheet -->
+<!-- Spec sheet — EDIT: 6 key/value rows describing your project. Delete if unused. -->
 <section class="specs">
   <div class="specs-header reveal">
     <span class="fig">FIG. 02</span>
@@ -711,57 +745,61 @@
   </div>
   <div class="spec-grid reveal">
     <div class="spec-item">
-      <label>SITE</label>
-      <div class="val">Healdsburg</div>
-      <span class="sub">Sonoma County, CA</span>
+      <label>SOURCE</label>
+      <div class="val">Video</div>
+      <span class="sub">Frame sequence</span>
     </div>
     <div class="spec-item">
-      <label>DURATION</label>
-      <div class="val">5 Weeks</div>
-      <span class="sub">27 May / 30 Jun 2026</span>
+      <label>TECHNIQUE</label>
+      <div class="val">Canvas Image Sequence Scrub</div>
+      <span class="sub">Scroll-driven</span>
     </div>
     <div class="spec-item">
       <label>FORMAT</label>
-      <div class="val">Popup Village</div>
-      <span class="sub">Residency + programming</span>
+      <div class="val">Static HTML</div>
+      <span class="sub">No build step</span>
     </div>
     <div class="spec-item">
-      <label>RESIDENTS</label>
-      <div class="val">Builders / Researchers / Founders</div>
-      <span class="sub">By application</span>
+      <label>RUNTIME</label>
+      <div class="val">Browser</div>
+      <span class="sub">Requires scroll</span>
     </div>
     <div class="spec-item">
-      <label>OUTPUTS</label>
-      <div class="val">Prototypes, Companies, Papers, Ideas</div>
-      <span class="sub">Seeded during residency</span>
+      <label>LAYOUT</label>
+      <div class="val">Sticky Canvas</div>
+      <span class="sub">500vh spacer</span>
     </div>
     <div class="spec-item">
       <label>STATUS</label>
-      <div class="val">Tickets On Sale</div>
-      <span class="sub">Apply via site</span>
+      <div class="val">Ready</div>
+      <span class="sub">Scroll to view</span>
     </div>
   </div>
 </section>
 
-<!-- CTA -->
+<!-- CTA — EDIT: headline and the link URL -->
 <section class="cta">
-  <div class="cta-eyebrow reveal">JOIN THE BUILD</div>
-  <h3 class="reveal">From <span>blueprint</span><br>to city.</h3>
-  <a class="cta-link reveal" href="https://edgeesmeralda.com" target="_blank" rel="noopener">
-    edgeesmeralda.com
+  <div class="cta-eyebrow reveal">END OF SEQUENCE</div>
+  <h3 class="reveal">From <span>frame</span><br>to site.</h3>
+  <a class="cta-link reveal" href="https://github.com/timkosters/scroll-scrub-starter" target="_blank" rel="noopener">
+    github.com/timkosters/scroll-scrub-starter
     <span class="arrow">→</span>
   </a>
 </section>
 
 <footer class="footer">
-  EE · 26 / A PROTOTYPE MICROSITE / IMAGE SEQUENCE BY SEEDANCE
+  Built with scroll-scrub-starter / A prototype microsite
 </footer>
 
 <script>
 (() => {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+
   const FRAME_COUNT = {{FRAME_COUNT}};
   const FRAME_PAD = 4;
-  const FRAME_PATH = (i) => `/frames/f_${String(i + 1).padStart(FRAME_PAD, '0')}.{{FRAME_EXT}}`;
+  const FRAME_PATH = (i) => `./frames/f_${String(i + 1).padStart(FRAME_PAD, '0')}.{{FRAME_EXT}}`;
   const CONCURRENCY = 6;
 
   const canvas = document.getElementById('canvas');

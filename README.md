@@ -1,15 +1,19 @@
 # scroll-scrub
 
-Turn any video into a scroll-scrubbed microsite. Apple AirPods-style: scroll down, video plays forward. Scroll up, video plays backward. The subject sits in a framed, shadowed canvas floating over a graph-paper background so you can see the page scrolling around it.
+**One command. Any video. Scroll-scrubbed microsite, live in 60 seconds.**
 
-Two ways to use it: **as a Claude Code skill** (drop a video in chat, get a live URL back) or **as a CLI** (`./build.sh video.mp4 my-site`, then deploy the folder anywhere static).
+Apple AirPods-style scroll animation: scroll down to play forward, scroll up to play backward. The subject sits in a framed canvas floating over a graph-paper background (customizable) so the page scrolls visibly around it.
+
+Two ways to use it:
+- **As a Claude Code skill** — drop a video in chat, get a live URL back. Claude picks a template and asks about the background.
+- **As a CLI** — `./build.sh video.mp4 my-site`, then deploy the folder anywhere static.
 
 ## Live examples
 
-- [video-scroll-0920.vercel.app](https://video-scroll-0920.vercel.app) — graph-paper default
-- [video-scroll-bluecity.vercel.app](https://video-scroll-bluecity.vercel.app) — square video, minimal
-- [ee26-blueprint.vercel.app](https://ee26-blueprint.vercel.app) — blueprint + transparent background
-- [ljr-scroll.vercel.app](https://ljr-scroll.vercel.app) — React animation variant (time driven by scroll instead of pre-rendered frames)
+- [video-scroll-0920.vercel.app](https://video-scroll-0920.vercel.app) — landscape video, graph-paper default
+- [video-scroll-bluecity.vercel.app](https://video-scroll-bluecity.vercel.app) — square video, minimal white
+- [ee26-blueprint.vercel.app](https://ee26-blueprint.vercel.app) — blueprint template + transparent background
+- [ljr-scroll.vercel.app](https://ljr-scroll.vercel.app) — scroll-driven React animation (no pre-rendered frames)
 
 ## Install as a Claude Code skill
 
@@ -46,26 +50,37 @@ chmod +x build.sh
 
 Options:
 - `--template graph-paper | minimal | blueprint` (default: `graph-paper`)
+- `--bg <CSS>` — override background. Any valid CSS: `paper` (default), `white`, `black`, a hex like `#1a1a2e`, a color name, or a full gradient like `"linear-gradient(180deg, #ff00aa, #00ffaa)"`. Wrap gradients in quotes.
+- `--bg-image <path>` — use a local image as background (copied into the output)
+- `--title <string>` — page title + og:title (default: project name)
+- `--description <string>` — meta + og:description
 - `--transparent` — chroma-key near-white to transparent, output WebP with alpha
 - `--fps N` — extraction fps (default: 24)
-- `--width N` — scale width in px (default: 1280)
+- `--width N` — scale width in px (default: 1280, forced even)
 - `--chroma-color 0xHEXHEX` — color to key out when `--transparent` is set
 - `--outdir path` — output folder (default: `./<project-name>`)
 
 ### Examples
 
 ```bash
-# Default: graph-paper background, auto-detect aspect ratio
+# Default: graph-paper, auto-detect aspect ratio, auto OG preview image
 ./build.sh ~/Downloads/clip.mp4 my-site
 
-# Minimal white background
-./build.sh ~/Downloads/clip.mp4 my-site --template minimal
+# Custom background color
+./build.sh ~/Downloads/clip.mp4 my-site --bg "#1a1a2e"
 
-# Blueprint + transparent background (for drawings on solid-white bg)
+# Gradient background
+./build.sh ~/Downloads/clip.mp4 my-site --bg "linear-gradient(180deg, #e8ddf5, #f5ead9)"
+
+# Image background
+./build.sh ~/Downloads/clip.mp4 my-site --bg-image ~/Pictures/bg.jpg
+
+# Blueprint + transparent background (for line drawings on solid-white bg)
 ./build.sh ~/Downloads/city.mp4 city-site --template blueprint --transparent
 
-# Higher resolution for large screens
-./build.sh ~/Downloads/clip.mp4 my-site --width 1600 --fps 30
+# Higher resolution + custom title/description for better social previews
+./build.sh ~/Downloads/clip.mp4 my-site --width 1600 --fps 30 \
+  --title "My Product Reveal" --description "Scroll to reveal the thing"
 ```
 
 ### Deploy

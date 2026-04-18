@@ -1,123 +1,195 @@
 ---
 name: scroll-scrub
 description: >
-  Turn any video into a scroll-scrubbed website. Apple AirPods-style animation where
-  scrolling down plays the video forward and scrolling up plays it backward.
-  Use when: (1) user says "scroll scrub", "scroll animation", "scrub video",
-  "Apple-style scroll", "scroll to play video", or provides a video and asks for a
-  scrollable website; (2) user wants to turn a generated/rendered video into an
-  interactive webpage; (3) user asks for the image-sequence scrub technique.
-  Handles: ffmpeg extraction, template selection (graph-paper default, minimal, blueprint),
-  optional transparent backgrounds, and deploy to Vercel or `here-now`.
-argument-hint: "[video-path] [optional: template, transparent, deploy target]"
+  Turn any video into a scroll-scrubbed microsite. Apple AirPods-style animation
+  where scrolling plays the video forward and up plays it backward. Use when the
+  user says any of: "scroll scrub", "scroll scrubbing", "scroll animation",
+  "scrub video", "Apple-style scroll", "Apple website scroll", "AirPods-style
+  site", "image sequence site", "make a video into a website", "scroll to play
+  video", "scroll-driven video", or when the user provides a video path and
+  asks for a scrollable website. Handles frame extraction, aspect-ratio
+  detection, optional transparent backgrounds, custom backgrounds, OpenGraph
+  preview images, and deploys to Vercel / here-now / folder-only.
+argument-hint: "[video-path] [optional: template, --bg color/image, --transparent]"
 ---
 
 # scroll-scrub skill
 
-Turn any video into a scroll-scrubbed microsite using canvas image-sequence scrubbing.
+Turns a video into a scroll-scrubbed microsite using canvas image-sequence scrubbing.
 
 ## Prerequisites
 
-- `ffmpeg` installed (`brew install ffmpeg`)
-- Optional: `cwebp` for transparent backgrounds (`brew install webp`)
-- A deploy target. One of:
+- `ffmpeg` (`brew install ffmpeg` on macOS). If missing, tell the user exactly that before trying anything else.
+- Optional: `cwebp` for `--transparent` mode (`brew install webp`)
+- Optional deploy target — one of:
   - Vercel CLI authenticated (`vercel whoami`)
   - `here-now` skill available
-  - Or just produce the folder locally, skip deploy
+  - Or no deploy — just hand back the folder and preview command
 
 ## What this skill does
 
-1. Probe the user's video (dimensions, duration, orientation)
-2. Extract frames with `ffmpeg` at 24fps into `<project>/frames/`
-3. Optionally chroma-key the background and output WebP with alpha (`--transparent`)
-4. Populate an HTML template with the right aspect ratio and frame count
-5. Deploy the resulting static folder
+1. Ask the user about **background choice** (see Step 2 below — critical)
+2. Probe the video (dimensions, duration, orientation)
+3. Extract frames with ffmpeg at 24fps, auto-detecting aspect ratio
+4. Optionally chroma-key the background and output WebP with alpha (`--transparent`)
+5. Auto-extract an OpenGraph preview image (so shared links have a thumbnail)
+6. Populate an HTML template with the right aspect ratio, frame count, OG tags, and background style
+7. Deploy the static folder
 
-The default template is `graph-paper`: a light cream background with a blue drafting-paper grid and the video sitting in a centered, shadowed frame at ~70vw. The frame shows the video in context — you see the grid scrolling around the edges as the canvas stays sticky.
+## Step 1 — parse the request
 
-## Step 1 — understand the request
+From the user's message, identify:
+- **Video path** (required). If missing, ask for it.
+- **Project name** (optional). Derive from the video filename in kebab-case if not given (e.g. `MyVideo.mp4` → `my-video`). Must match `[A-Za-z0-9._-]+`.
+- **Title / description** (optional). If they mention what it's about, use that.
 
-Parse the user's message to find:
-- **Video path** (required). If missing, ask the user.
-- **Project name** (optional). If not provided, derive from the video filename (kebab-case, no extension).
-- **Template preference**: `graph-paper` (default), `minimal` (plain white), or `blueprint` (dark navy).
-- **Transparent background**: if the user says "transparent", "key out the background", "just the subject", or similar, set `--transparent`. Works best when the video has a near-solid light background.
-- **Deploy target**: Vercel by default. If user says "here-now" or "quick share", try that skill instead.
+## Step 2 — ASK about background
 
-## Step 2 — build the site
+**This is important. Do not skip it.** Background choice is the single biggest visual decision. Before running the build, ask the user:
+
+> What background do you want?
+> - **Graph paper** (warm cream with blue drafting grid — default, great all-purpose)
+> - **Minimal white** (clean, no chrome)
+> - **Blueprint** (dark navy with cyan grid — technical/schematic feel)
+> - **Custom** — a solid color (hex or name), a gradient, or a background image
+
+If they pick custom:
+- Solid color → `--bg "#HEX"` or `--bg colorname`
+- Gradient → `--bg "linear-gradient(...)"` (wrap in quotes when invoking the script)
+- Image → `--bg-image /path/to/image.jpg`
+
+Also optional to ask:
+- Do they want transparent background on the video itself (only if video has a near-solid bg color that can be keyed out)? → `--transparent`
+- Template? Default to `graph-paper`. Use `minimal` or `blueprint` only if the user picks.
+
+## Step 3 — build the site
+
+Resolve the skill's own directory (where `build.sh` lives):
 
 ```bash
-SCRIPT_DIR="$(cd "$(dirname "SKILL_PATH")" && pwd)"
-cd /tmp/scroll-scrub-sites
-"$SCRIPT_DIR/build.sh" "<video-path>" "<project-name>" [flags]
+SKILL_DIR="$HOME/.claude/skills/scroll-scrub"
 ```
 
-Substitute `SKILL_PATH` with the actual path to this skill's directory (likely `~/.claude/skills/scroll-scrub/`). Use `/tmp/scroll-scrub-sites/` as the working directory so the user's home doesn't get polluted.
+Create a working directory somewhere outside the user's home so it doesn't pollute:
 
-The script output tells you where the build landed and the next commands.
+```bash
+mkdir -p /tmp/scroll-scrub-sites
+cd /tmp/scroll-scrub-sites
+"$SKILL_DIR/build.sh" "<video-path>" "<project-name>" [flags]
+```
 
-## Step 3 — verify before deploying
+The script prints progress across 5 steps. On success it outputs the folder path and next-step commands. On failure it prints a clear error with the reason (missing tool, bad video, invalid name).
 
-Serve the folder locally and sanity-check:
+Common invocations:
+
+```bash
+# Default (graph-paper background)
+"$SKILL_DIR/build.sh" /path/to/video.mp4 my-site
+
+# Custom solid color
+"$SKILL_DIR/build.sh" /path/to/video.mp4 my-site --bg "#1a1a2e"
+
+# Gradient (note the quotes)
+"$SKILL_DIR/build.sh" /path/to/video.mp4 my-site --bg "linear-gradient(180deg, #e8ddf5, #f5ead9)"
+
+# Background image
+"$SKILL_DIR/build.sh" /path/to/video.mp4 my-site --bg-image /path/to/bg.jpg
+
+# Blueprint + transparent (for line drawings on white)
+"$SKILL_DIR/build.sh" /path/to/video.mp4 my-site --template blueprint --transparent
+
+# With title + description for better OpenGraph
+"$SKILL_DIR/build.sh" /path/to/video.mp4 my-site \
+  --title "My Product Reveal" \
+  --description "Scroll to reveal the product"
+```
+
+## Step 4 — verify before deploying
+
+Serve locally and sanity-check both the page and a frame:
 
 ```bash
 cd /tmp/scroll-scrub-sites/<project-name>
-python3 -m http.server 8765 > /tmp/scroll-scrub-server.log 2>&1 &
+# Prefer python3, fall back to python, then npx serve
+if command -v python3 >/dev/null; then
+  python3 -m http.server 8765 > /tmp/scroll-scrub-server.log 2>&1 &
+elif command -v python >/dev/null; then
+  python -m http.server 8765 > /tmp/scroll-scrub-server.log 2>&1 &
+else
+  echo "need python3 or python to verify locally. skipping verify step."
+fi
+sleep 2
 curl -s -o /dev/null -w "root=%{http_code}\n" http://localhost:8765/
-curl -s -o /dev/null -w "f1=%{http_code}\n" http://localhost:8765/frames/f_0001.jpg
-# (or .webp if --transparent was used)
+curl -s -o /dev/null -w "frame1=%{http_code}\n" http://localhost:8765/frames/f_0001.jpg
+# (or .webp if --transparent was used — check the actual extension first)
 ```
 
-If both return 200, the build is good. Kill the local server before deploying:
-`lsof -t -i :8765 | xargs kill 2>/dev/null`
+Both 200 = good. Kill the local server before deploying:
 
-## Step 4 — deploy
+```bash
+lsof -t -i :8765 | xargs kill 2>/dev/null
+```
+
+## Step 5 — deploy
 
 ### Option A — Vercel (default)
+
+First check auth:
+
+```bash
+vercel whoami 2>&1 | head -1
+```
+
+If it returns a username, deploy:
 
 ```bash
 cd /tmp/scroll-scrub-sites/<project-name>
 vercel --yes --prod 2>&1 | tail -10
 ```
 
-The output includes the live URL (aliased production URL and deploy-specific URL). Return that to the user.
+If Vercel errors with "missing_scope" (non-interactive mode), read the error — it lists valid team/scope names. Retry with `--scope <team-slug>`.
 
-If vercel prompts for scope (non-interactive), use `--scope <team-slug>`. Read the error message — it usually lists valid scopes to pick from.
+If `vercel` is not installed: tell the user `npm install -g vercel && vercel login`, then fall through to Option B or C.
 
-### Option B — here-now
+### Option B — here-now skill
 
-If the `here-now` skill is available and the user prefers it, invoke that skill on the output folder. It provides instant static hosting at `{slug}.here.now`.
+If the `here-now` skill is installed (check with `ls ~/.claude/skills/here-now` or similar), invoke it on the output folder. Good for users without Vercel.
 
 ### Option C — folder only
 
-If the user wants no deploy, just report the output path and the next-step commands.
+If no deploy target is available, tell the user:
+- The folder is at `/tmp/scroll-scrub-sites/<project-name>`
+- They can upload it to any static host (Netlify drop, GitHub Pages, S3, Cloudflare Pages, etc.)
+- Or they can install Vercel: `npm install -g vercel && vercel login`
 
-## Step 5 — report back
+## Step 6 — report back
 
-Give the user:
-- Live URL
-- Total deploy size (run `du -sh <project-name>` to compute)
-- Frame count and template used
-- One-line sanity: "Video renders on scroll, background visible around the frame."
+Tell the user:
+- Live URL (or folder path if no deploy)
+- Total payload size (`du -sh <project-name>`)
+- Frame count, fps, template, and background choice
+- One-line sanity: the URL, a note that shared links will show a preview (OG image), and that reduced-motion users see a static poster
 
-## Tuning notes
+## Tuning defaults
 
-- **Default fps is 24.** Higher fps = smoother scrub but bigger payload. 30fps is fine for short videos; 15fps is fine for very long ones.
-- **Default width is 1280px.** Sharp enough on retina at 70vw viewport. Go higher (1600, 1920) for very large displays or zoomed-in views.
-- **Total payload target: under 30MB.** A 10-second 24fps video at 1280px comes in around 18MB as JPEG q=5 or WebP alpha q=72. Longer videos need lower fps or smaller width.
-- **Aspect ratio is auto-detected.** Landscape / portrait / square are all handled by the `--width` flag scaling the long edge.
+- **fps**: 24 (override with `--fps`). Higher = smoother, bigger payload.
+- **Width**: 1280px (override with `--width`). Sharp at 70-80vw on retina.
+- **Payload target**: under 30MB. 10s @ 24fps @ 1280px ≈ 18MB.
+- For longer videos: drop fps to 15 or width to 960.
 
-## Video-shooting tips (pass to users who haven't shot yet)
+## Video-shooting tips (mention if user hasn't shot yet)
 
-- Lock the camera. No zoom, no cuts, no shake.
+- Lock the camera. No zoom, cuts, or shake.
 - One element moves. Subject transforms, background stays still.
-- Movement should be linear — scroll maps to time linearly.
-- Subject dead center (crop-safe).
-- Keep it 5–15 seconds.
+- Movement should be linear (scroll maps to time linearly).
+- Subject dead center.
+- 5-15 seconds is the sweet spot. Longer = slower first load.
 
 ## Gotchas
 
-- **`cover` fitting crops a bit.** If the source aspect doesn't perfectly match the canvas-wrap aspect, the drawFrame function does cover-fit. The aspect-ratio CSS should match the source so cropping is minimal.
-- **Large frame count = slow first load.** Loader shows progress. Tell the user if the expected load is >10s on a slow connection.
-- **Transparent mode needs a solid background.** The chroma-key default is near-white (`0xfefefe`). If the video has a green or black background, pass `--chroma-color 0x00ff00` or `0x000000`.
-- **Vercel scope required in non-interactive mode.** Read the error, it tells you the scope to use. For Timour that's `timkosters-projects`.
+- **Odd source dimensions** get forced to even by ffmpeg. No action needed.
+- **HDR/10-bit sources** are transcoded to `yuvj420p` so they don't come out washed.
+- **Very short videos (<2 frames)** fail the build with a clear error.
+- **`--transparent` needs a solid background** in the source. Default keys near-white. For other colors use `--chroma-color 0xHEXHEX`.
+- **Vercel non-interactive**: if `--yes` errors, use `--scope <team-slug>` from the error message.
+- **Deploy subpath hosting**: all frame paths are relative (`./frames/...`), so GitHub Pages project pages, S3 folders, and other subpath hosts work out of the box.
