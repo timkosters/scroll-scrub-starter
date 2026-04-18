@@ -5,7 +5,7 @@
 Apple AirPods-style scroll animation: scroll down to play forward, scroll up to play backward. The subject sits in a framed canvas floating over a graph-paper background (customizable) so the page scrolls visibly around it.
 
 Two ways to use it:
-- **As a Claude Code skill** — drop a video in chat, get a live URL back. Claude picks a template and asks about the background.
+- **As an agent skill** — works with Claude Code, Codex, Cursor, Copilot, Gemini CLI, Aider, Zed, Windsurf, and any other tool that reads `SKILL.md` / `AGENTS.md`. Drop a video in chat, get a live URL back. The agent picks a template and asks you about the background.
 - **As a CLI** — `./build.sh video.mp4 my-site`, then deploy the folder anywhere static.
 
 ## Live examples
@@ -15,17 +15,31 @@ Two ways to use it:
 - [ee26-blueprint.vercel.app](https://ee26-blueprint.vercel.app) — blueprint template + transparent background
 - [ljr-scroll.vercel.app](https://ljr-scroll.vercel.app) — scroll-driven React animation (no pre-rendered frames)
 
-## Install as a Claude Code skill
+## Install as an agent skill
+
+### Claude Code (global install)
 
 ```bash
 git clone https://github.com/timkosters/scroll-scrub-starter ~/.claude/skills/scroll-scrub
 ```
 
-That's it. Next time you're in Claude Code, give it a video and ask for a scroll-scrub site:
-
+Next time you're in Claude Code, in any directory:
 > Turn `~/Downloads/clip.mp4` into a scroll-scrub site and deploy it.
 
-Claude will run `build.sh` for you, test the build locally, and deploy via Vercel (or `here-now` if you have that skill installed). You'll get a live URL back.
+### Codex, Cursor, Aider, Gemini CLI, Copilot, Zed, Windsurf, etc. (per-project)
+
+Clone the repo and open it in your agent tool. `AGENTS.md` and `SKILL.md` at the root are auto-discovered:
+
+```bash
+git clone https://github.com/timkosters/scroll-scrub-starter
+cd scroll-scrub-starter
+# open in Codex / Cursor / your editor
+```
+
+Then ask your agent:
+> Turn `~/Downloads/clip.mp4` into a scroll-scrub microsite.
+
+The agent reads `SKILL.md`, runs `build.sh` for you, and deploys. The build process asks you about the background first.
 
 ## Install as a CLI
 

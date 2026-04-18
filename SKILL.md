@@ -5,17 +5,23 @@ description: >
   where scrolling plays the video forward and up plays it backward. Use when the
   user says any of: "scroll scrub", "scroll scrubbing", "scroll animation",
   "scrub video", "Apple-style scroll", "Apple website scroll", "AirPods-style
-  site", "image sequence site", "make a video into a website", "scroll to play
-  video", "scroll-driven video", or when the user provides a video path and
-  asks for a scrollable website. Handles frame extraction, aspect-ratio
-  detection, optional transparent backgrounds, custom backgrounds, OpenGraph
-  preview images, and deploys to Vercel / here-now / folder-only.
+  site", "image sequence site", "microsite from a video", "microsite from this
+  video", "make a microsite from this video", "turn this video into a site",
+  "make a site from this video", "make a video into a website", "scroll to play
+  video", "scroll-driven video", or when the user provides a video path and asks
+  for a scrollable website or microsite. Also triggered when a user mentions
+  creating a website, site, or microsite AND provides a video file path or asks
+  about converting video content into a web experience. Handles frame extraction,
+  aspect-ratio detection, optional transparent backgrounds, custom backgrounds,
+  OpenGraph preview images, and deploys to Vercel / here-now / folder-only.
 argument-hint: "[video-path] [optional: template, --bg color/image, --transparent]"
 ---
 
-# scroll-scrub skill
+# scroll-scrub — agent skill
 
 Turns a video into a scroll-scrubbed microsite using canvas image-sequence scrubbing.
+
+This is an **agent skill**: cross-compatible with any modern coding agent that reads skill files (Claude Code, Codex, Cursor, Copilot, Gemini CLI, Aider, Zed, Windsurf, Warp). Works both when installed globally (e.g. at `~/.claude/skills/scroll-scrub/`) and when the repo is cloned locally.
 
 ## Prerequisites
 
