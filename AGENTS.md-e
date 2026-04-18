@@ -56,4 +56,4 @@ The agent then invokes it by keyword match (see `SKILL.md` description for trigg
 
 ## If invoked as a project (repo-cloned)
 
-If the user cloned this repo and is asking you to run it inside this directory, `SKILL.md` still applies, use the CLI directly (`./build.sh ...`).
+If the user cloned this repo and is asking you to run it inside this directory, `SKILL.md` still applies — use the CLI directly (`./build.sh ...`).

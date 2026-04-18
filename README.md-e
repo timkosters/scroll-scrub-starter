@@ -22,10 +22,10 @@ The agent will run `build.sh` with sensible defaults (graph-paper background, 24
 
 ## Live examples
 
-- [video-scroll-0920.vercel.app](https://video-scroll-0920.vercel.app): landscape video, graph-paper default
-- [video-scroll-bluecity.vercel.app](https://video-scroll-bluecity.vercel.app): square video, minimal white
-- [ee26-blueprint.vercel.app](https://ee26-blueprint.vercel.app): blueprint template + transparent background
-- [ljr-scroll.vercel.app](https://ljr-scroll.vercel.app): scroll-driven React animation (no pre-rendered frames)
+- [video-scroll-0920.vercel.app](https://video-scroll-0920.vercel.app) — landscape video, graph-paper default
+- [video-scroll-bluecity.vercel.app](https://video-scroll-bluecity.vercel.app) — square video, minimal white
+- [ee26-blueprint.vercel.app](https://ee26-blueprint.vercel.app) — blueprint template + transparent background
+- [ljr-scroll.vercel.app](https://ljr-scroll.vercel.app) — scroll-driven React animation (no pre-rendered frames)
 
 ## Install as an agent skill
 
@@ -70,7 +70,7 @@ chmod +x build.sh
 1. `ffmpeg`. `brew install ffmpeg` (macOS) or your OS's package manager
 2. Optional for transparent backgrounds: `webp`. `brew install webp`
 3. A video file (any format ffmpeg can read)
-4. A deploy target: Vercel, Netlify, GitHub Pages, S3, any static host
+4. A deploy target — Vercel, Netlify, GitHub Pages, S3, any static host
 
 ## One command
 
@@ -82,17 +82,17 @@ If `project-name` is omitted, it's derived from the video filename. Example: `Vi
 
 Options:
 - `--template graph-paper | minimal | blueprint` (default: `graph-paper`)
-- `--bg <CSS>`: override background. Any valid CSS: `paper` (default), `white`, `black`, a hex like `#1a1a2e`, a color name, or a full gradient like `"linear-gradient(180deg, #ff00aa, #00ffaa)"`. Wrap gradients in quotes.
-- `--bg-image <path>`: use a local image as background (copied into the output)
-- `--title <string>`: page title + og:title (default: project name)
-- `--description <string>`: meta + og:description
-- `--transparent`: chroma-key near-white to transparent, output WebP with alpha
-- `--fps N`: extraction fps (default: 24)
-- `--width N`: scale width in px (default: 1280, forced even)
-- `--chroma-color 0xHEXHEX`: color to key out when `--transparent` is set
-- `--outdir path`: output folder (default: `./<project-name>`)
-- `--deploy`: after build, push to Vercel if authed (otherwise prints folder path)
-- `--check`: preflight: verify ffmpeg, cwebp, vercel, python3, write permissions, then exit
+- `--bg <CSS>`. override background. Any valid CSS: `paper` (default), `white`, `black`, a hex like `#1a1a2e`, a color name, or a full gradient like `"linear-gradient(180deg, #ff00aa, #00ffaa)"`. Wrap gradients in quotes.
+- `--bg-image <path>`. use a local image as background (copied into the output)
+- `--title <string>`. page title + og:title (default: project name)
+- `--description <string>`. meta + og:description
+- `--transparent`. chroma-key near-white to transparent, output WebP with alpha
+- `--fps N`. extraction fps (default: 24)
+- `--width N`. scale width in px (default: 1280, forced even)
+- `--chroma-color 0xHEXHEX`. color to key out when `--transparent` is set
+- `--outdir path`. output folder (default: `./<project-name>`)
+- `--deploy`. after build, push to Vercel if authed (otherwise prints folder path)
+- `--check`. preflight: verify ffmpeg, cwebp, vercel, python3, write permissions, then exit
 
 ### Examples
 
@@ -147,7 +147,7 @@ python3 -m http.server 8000
 
 | Name | Look | Use |
 |---|---|---|
-| `graph-paper` (default) | Cream paper with light-blue drafting grid, video in a centered shadowed frame | General-purpose; works for any video |
+| `graph-paper` (default) | Cream paper with light-blue drafting grid, video in a centered shadowed frame | General-purpose — works for any video |
 | `minimal` | Pure white background, video full-viewport within max bounds | Clean, no chrome |
 | `blueprint` | Midnight-blue with cyan grid, crosshair corners, frame counter, progress ruler | For schematic/technical/drawing-style videos |
 

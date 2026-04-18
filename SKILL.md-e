@@ -17,7 +17,7 @@ description: >
 argument-hint: "[video-path] [optional: template, --bg color/image, --transparent]"
 ---
 
-# scroll-scrub
+# scroll-scrub — agent skill
 
 Turns a video into a scroll-scrubbed microsite using canvas image-sequence scrubbing.
 
@@ -27,14 +27,14 @@ This is an **agent skill**: cross-compatible with any modern coding agent that r
 
 - `ffmpeg` (`brew install ffmpeg` on macOS). If missing, tell the user exactly that before trying anything else.
 - Optional: `cwebp` for `--transparent` mode (`brew install webp`)
-- Optional deploy target, one of:
+- Optional deploy target — one of:
   - Vercel CLI authenticated (`vercel whoami`)
   - `here-now` skill available
-  - Or no deploy, just hand back the folder and preview command
+  - Or no deploy — just hand back the folder and preview command
 
 ## What this skill does
 
-1. Ask the user about **background choice** (see Step 2 below; critical)
+1. Ask the user about **background choice** (see Step 2 below — critical)
 2. Probe the video (dimensions, duration, orientation)
 3. Extract frames with ffmpeg at 24fps, auto-detecting aspect ratio
 4. Optionally chroma-key the background and output WebP with alpha (`--transparent`)
@@ -42,7 +42,7 @@ This is an **agent skill**: cross-compatible with any modern coding agent that r
 6. Populate an HTML template with the right aspect ratio, frame count, OG tags, and background style
 7. Deploy the static folder
 
-## Step 1: Parse the request
+## Step 1 — parse the request
 
 From the user's message, identify:
 - **Video path** (required). If missing, ask for it.
@@ -50,7 +50,7 @@ From the user's message, identify:
 - **Title / description** (optional). If they mention what it's about, pass `--title` and `--description`.
 - **Background preference** (optional). Only present if the user mentioned one. Default to graph-paper otherwise.
 
-## Step 2: Choose a background
+## Step 2 — choose a background
 
 Default behavior: use `graph-paper` and do not ask. Let the user opt out or customize via flags. Only ask about the background if their request is explicitly ambiguous (e.g. "something fancy" or "make it look like X").
 
@@ -62,9 +62,9 @@ If the user mentioned a background preference, map it to a flag:
 - An image → `--bg-image /path/to/image.jpg`
 - "transparent subject" (only if the source has a near-solid bg) → `--transparent`
 
-After the build completes, always mention in the reply: "if you want a different look, re-run with `--bg <color>` or `--template blueprint`." Keep it soft and do not force a second turn.
+After the build completes, always mention in the reply: "if you want a different look, re-run with `--bg <color>` or `--template blueprint`." Keep it soft — do not force a second turn.
 
-## Step 2a: Fast-path: only a video was given
+## Step 2a — fast-path: only a video was given
 
 If the user's request contains only a video path and no other preferences:
 
@@ -74,7 +74,7 @@ If the user's request contains only a video path and no other preferences:
 
 That runs the pipeline with defaults: graph-paper template, 24fps, 1280px wide, auto-named project, and pushes to Vercel if the CLI is installed + authed. No questions asked.
 
-## Step 3: Build the site
+## Step 3 — build the site
 
 Resolve the skill's own directory (where `build.sh` lives). Two common locations:
 
@@ -94,7 +94,7 @@ cd /tmp/scroll-scrub-sites
 "$SKILL_DIR/build.sh" "<video-path>" [project-name] [flags]
 ```
 
-`project-name` is optional. `build.sh` auto-derives from the video filename. On success the script outputs the folder path, a `build-info.json` with metadata, and next-step commands. On failure it prints a clear error (missing tool, bad video, invalid name).
+`project-name` is optional — `build.sh` auto-derives from the video filename. On success the script outputs the folder path, a `build-info.json` with metadata, and next-step commands. On failure it prints a clear error (missing tool, bad video, invalid name).
 
 Common invocations:
 
@@ -126,7 +126,7 @@ Common invocations:
 "$SKILL_DIR/build.sh" --check
 ```
 
-## Step 4: Verify before deploying
+## Step 4 — verify before deploying
 
 Serve locally and sanity-check both the page and a frame:
 
@@ -143,7 +143,7 @@ fi
 sleep 2
 curl -s -o /dev/null -w "root=%{http_code}\n" http://localhost:8765/
 curl -s -o /dev/null -w "frame1=%{http_code}\n" http://localhost:8765/frames/f_0001.jpg
-# (or .webp if --transparent was used, check the actual extension first)
+# (or .webp if --transparent was used — check the actual extension first)
 ```
 
 Both 200 = good. Kill the local server before deploying:
@@ -152,9 +152,9 @@ Both 200 = good. Kill the local server before deploying:
 lsof -t -i :8765 | xargs kill 2>/dev/null
 ```
 
-## Step 5: Deploy
+## Step 5 — deploy
 
-### Option A: Vercel (default)
+### Option A — Vercel (default)
 
 First check auth:
 
@@ -169,22 +169,22 @@ cd /tmp/scroll-scrub-sites/<project-name>
 vercel --yes --prod 2>&1 | tail -10
 ```
 
-If Vercel errors with "missing_scope" (non-interactive mode), read the error. it lists valid team/scope names, Retry with `--scope <team-slug>`.
+If Vercel errors with "missing_scope" (non-interactive mode), read the error — it lists valid team/scope names. Retry with `--scope <team-slug>`.
 
 If `vercel` is not installed: tell the user `npm install -g vercel && vercel login`, then fall through to Option B or C.
 
-### Option B: Here-now skill
+### Option B — here-now skill
 
 If the `here-now` skill is installed (check with `ls ~/.claude/skills/here-now` or similar), invoke it on the output folder. Good for users without Vercel.
 
-### Option C: Folder only
+### Option C — folder only
 
 If no deploy target is available, tell the user:
 - The folder is at `/tmp/scroll-scrub-sites/<project-name>`
 - They can upload it to any static host (Netlify drop, GitHub Pages, S3, Cloudflare Pages, etc.)
 - Or they can install Vercel: `npm install -g vercel && vercel login`
 
-## Step 6: Report back
+## Step 6 — report back
 
 Tell the user:
 - Live URL (or folder path if no deploy)

@@ -3,7 +3,11 @@
 # Turn a video into a scroll-scrubbed canvas image-sequence site.
 #
 # Usage:
-#   ./build.sh <video-file> <project-name> [options]
+#   ./build.sh <video-file> [project-name] [options]
+#   ./build.sh --check                    # preflight: verify tools and permissions
+#
+# If project-name is omitted, it's derived from the video filename
+# (e.g. Vital Futures.mp4 -> vital-futures).
 #
 # Options:
 #   --template graph-paper | minimal | blueprint   (default: graph-paper)
@@ -19,6 +23,7 @@
 #   --width <N>               Pixel width to scale to (default: 1280; forced even)
 #   --chroma-color 0xHEXHEX   For --transparent, color to key out (default: near-white)
 #   --outdir <path>           Output folder (default: ./<project-name>)
+#   --deploy                  After build, try Vercel deploy if available
 #
 # Output: a folder ready to deploy (e.g. via `vercel --yes` or `here-now`).
 
@@ -39,6 +44,13 @@ OUTDIR=""
 CHROMA_KEY_COLOR="0xfefefe"
 CHROMA_KEY_SIMILARITY="0.25"
 CHROMA_KEY_BLEND="0.10"
+DEPLOY=0
+CHECK_ONLY=0
+
+# Preflight/doctor mode
+if [[ "${1:-}" == "--check" ]]; then
+  CHECK_ONLY=1
+fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -52,8 +64,10 @@ while [[ $# -gt 0 ]]; do
     --width) WIDTH="$2"; shift 2 ;;
     --chroma-color) CHROMA_KEY_COLOR="$2"; shift 2 ;;
     --outdir) OUTDIR="$2"; shift 2 ;;
+    --deploy) DEPLOY=1; shift ;;
+    --check) CHECK_ONLY=1; shift ;;
     -h|--help)
-      sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'
       exit 0 ;;
     *)
       if [[ -z "$VIDEO" ]]; then VIDEO="$1"
@@ -64,9 +78,68 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$VIDEO" || -z "$NAME" ]]; then
+# --check: preflight and exit
+if [[ "$CHECK_ONLY" == "1" ]]; then
+  echo "scroll-scrub preflight check"
+  echo "─────────────────────────────"
+  ok=1
+  for bin in ffmpeg ffprobe; do
+    if command -v "$bin" >/dev/null; then
+      echo "  ✓ $bin  ($(command -v "$bin"))"
+    else
+      echo "  ✗ $bin  MISSING (brew install ffmpeg)"
+      ok=0
+    fi
+  done
+  if command -v cwebp >/dev/null; then
+    echo "  ✓ cwebp (optional, for --transparent)"
+  else
+    echo "  ○ cwebp  not installed (optional; brew install webp to enable --transparent)"
+  fi
+  if command -v python3 >/dev/null; then
+    echo "  ✓ python3 (for local preview + template substitution)"
+  elif command -v python >/dev/null; then
+    echo "  ✓ python (will use for template substitution)"
+  else
+    echo "  ✗ python  MISSING (needed for template substitution)"
+    ok=0
+  fi
+  if command -v vercel >/dev/null; then
+    if vercel whoami >/dev/null 2>&1; then
+      echo "  ✓ vercel  (authed as $(vercel whoami 2>/dev/null))"
+    else
+      echo "  ○ vercel  installed but not authed (run: vercel login)"
+    fi
+  else
+    echo "  ○ vercel  not installed (optional; npm i -g vercel)"
+  fi
+  if [[ -w . ]]; then
+    echo "  ✓ current dir writable"
+  else
+    echo "  ✗ current dir not writable"
+    ok=0
+  fi
+  echo ""
+  if [[ "$ok" == "1" ]]; then
+    echo "ready to build. example:  ./build.sh ~/Downloads/your-video.mp4"
+    exit 0
+  else
+    echo "some requirements are missing. install them and re-run --check."
+    exit 1
+  fi
+fi
+
+if [[ -z "$VIDEO" ]]; then
   cat <<USAGE >&2
-usage: ./build.sh <video-file> <project-name> [options]
+usage: ./build.sh <video-file> [project-name] [options]
+       ./build.sh --check                  # verify tools and permissions
+
+examples:
+  ./build.sh ~/Downloads/clip.mp4                        # auto-names project, graph-paper default
+  ./build.sh ~/Downloads/clip.mp4 my-site
+  ./build.sh ~/Downloads/clip.mp4 --bg "#1a1a2e"
+  ./build.sh ~/Downloads/clip.mp4 --template blueprint --transparent
+  ./build.sh ~/Downloads/clip.mp4 --deploy               # build + push to Vercel
 
 options:
   --template graph-paper | minimal | blueprint   (default: graph-paper)
@@ -77,25 +150,34 @@ options:
   --transparent                                  chroma-key near-white to alpha (needs cwebp)
   --fps <N>                                      extraction fps (default: 24)
   --width <N>                                    scale width in px (default: 1280)
+  --deploy                                       run vercel deploy after build
   --outdir <path>                                output folder (default: ./<project-name>)
-
-examples:
-  ./build.sh ~/Downloads/clip.mp4 my-site
-  ./build.sh ~/Downloads/clip.mp4 my-site --bg "#1a1a2e" --title "My Reveal"
-  ./build.sh ~/Downloads/clip.mp4 my-site --template blueprint --transparent
 USAGE
   exit 1
+fi
+
+if [[ ! -f "$VIDEO" ]]; then
+  echo "video not found: $VIDEO" >&2
+  exit 1
+fi
+
+# Derive project name from video filename if not given
+if [[ -z "$NAME" ]]; then
+  base=$(basename "$VIDEO")
+  # Strip extension, then slugify: lowercase, replace non-alnum with hyphens, collapse hyphens
+  stem="${base%.*}"
+  slug=$(printf '%s' "$stem" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9]/-/g' -e 's/-\+/-/g' -e 's/^-//' -e 's/-$//')
+  if [[ -z "$slug" ]]; then
+    slug="scroll-site-$(date +%s)"
+  fi
+  NAME="$slug"
+  echo "(project name derived from filename: $NAME)"
 fi
 
 # Sanitize project name: only allow sensible filename chars
 if [[ ! "$NAME" =~ ^[A-Za-z0-9._-]+$ ]]; then
   echo "project name must contain only letters, digits, dot, underscore, hyphen" >&2
   echo "got: $NAME" >&2
-  exit 1
-fi
-
-if [[ ! -f "$VIDEO" ]]; then
-  echo "video not found: $VIDEO" >&2
   exit 1
 fi
 
@@ -120,15 +202,16 @@ fi
 OUT="${OUTDIR:-./$NAME}"
 mkdir -p "$OUT/frames"
 
-echo "[1/5] probing video..."
+echo "[1/6] probing video..."
 W_SRC=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$VIDEO" 2>/dev/null || echo "")
 H_SRC=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$VIDEO" 2>/dev/null || echo "")
 if [[ -z "$W_SRC" || -z "$H_SRC" || "$W_SRC" -eq 0 || "$H_SRC" -eq 0 ]]; then
   echo "could not read video dimensions from $VIDEO. is it a valid video file?" >&2
   exit 1
 fi
-DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$VIDEO" 2>/dev/null || echo "?")
-echo "  source: ${W_SRC}x${H_SRC}, ${DUR%.*}s"
+DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$VIDEO" 2>/dev/null || echo "0")
+DUR_INT=${DUR%.*}
+echo "  source: ${W_SRC}x${H_SRC}, ${DUR_INT}s"
 
 # Orientation + scale filter
 if [[ "$W_SRC" -gt "$H_SRC" ]]; then
@@ -142,10 +225,8 @@ else
   SCALE="scale=${WIDTH}:${WIDTH}:flags=lanczos"
 fi
 
-# CSS for canvas-wrap sizing + aspect
 WRAP_CSS="width: min(78vw, calc(82vh * ${W_SRC} / ${H_SRC})); max-height: 82vh; aspect-ratio: ${W_SRC} / ${H_SRC};"
 
-# Background style (body background CSS)
 if [[ -n "$BG_IMAGE" ]]; then
   if [[ ! -f "$BG_IMAGE" ]]; then
     echo "bg-image not found: $BG_IMAGE" >&2
@@ -155,24 +236,18 @@ if [[ -n "$BG_IMAGE" ]]; then
   cp "$BG_IMAGE" "$OUT/bg.${BG_EXT}"
   BG_STYLE="background: #0a0a0a url('./bg.${BG_EXT}') center center / cover no-repeat fixed;"
 elif [[ -n "$BG" ]]; then
-  # Map common words to sensible defaults
   case "$BG" in
-    paper)
-      BG_STYLE=""  # fall through to template default (graph paper)
-      ;;
+    paper) BG_STYLE="" ;;
     white) BG_STYLE="background: #ffffff;" ;;
     black) BG_STYLE="background: #0a0a0a;" ;;
     cream) BG_STYLE="background: #f7f5ee;" ;;
-    *)
-      # Any other value: use as CSS background
-      BG_STYLE="background: ${BG};"
-      ;;
+    *) BG_STYLE="background: ${BG};" ;;
   esac
 else
-  BG_STYLE=""  # template default
+  BG_STYLE=""
 fi
 
-echo "[2/5] extracting frames at ${FPS}fps, ${ORIENT}..."
+echo "[2/6] extracting frames at ${FPS}fps, ${ORIENT}..."
 if [[ "$TRANSPARENT" == "1" ]]; then
   TMPDIR="$(mktemp -d)"
   trap 'rm -rf "$TMPDIR"' EXIT
@@ -186,7 +261,7 @@ if [[ "$TRANSPARENT" == "1" ]]; then
     exit 1
   fi
 
-  echo "[3/5] converting to WebP with alpha..."
+  echo "[3/6] converting to WebP with alpha..."
   EXT="webp"
   for f in "${pngs[@]}"; do
     nm=$(basename "$f" .png)
@@ -205,10 +280,9 @@ else
     rm -rf "$OUT/frames"
     exit 1
   fi
-  echo "[3/5] (skipping webp transparency step)"
+  echo "[3/6] (skipping webp transparency step)"
 fi
 
-# Count frames, using explicit pattern match
 FRAME_COUNT=$(find "$OUT/frames" -maxdepth 1 -name "f_*.${EXT}" | wc -l | tr -d ' ')
 SIZE=$(du -sh "$OUT/frames" | awk '{print $1}')
 echo "  → ${FRAME_COUNT} frames (${SIZE})"
@@ -218,36 +292,39 @@ if [[ "$FRAME_COUNT" -lt 2 ]]; then
   exit 1
 fi
 
-echo "[4/5] extracting poster frame for og:image..."
-# Copy a middle-ish frame as og-image. Use ~30% into the sequence (usually more interesting than frame 1).
+echo "[4/6] extracting poster frame..."
 POSTER_IDX=$(( FRAME_COUNT * 3 / 10 ))
 [[ "$POSTER_IDX" -lt 1 ]] && POSTER_IDX=1
 POSTER_NAME=$(printf "f_%04d" "$POSTER_IDX")
 POSTER_SRC="$OUT/frames/${POSTER_NAME}.${EXT}"
 if [[ "$EXT" == "webp" ]]; then
-  # Convert to jpg for og-image (broader compatibility)
   ffmpeg -v error -y -i "$POSTER_SRC" -q:v 3 "$OUT/og-image.jpg"
 else
   cp "$POSTER_SRC" "$OUT/og-image.jpg"
 fi
+# Also expose as poster.jpg for a clearer contract
+cp "$OUT/og-image.jpg" "$OUT/poster.jpg"
 
-echo "[5/5] writing index.html..."
-
-# Defaults for TITLE and DESCRIPTION
+echo "[5/6] writing index.html..."
 DISPLAY_TITLE="${TITLE:-$NAME}"
 DISPLAY_DESC="${DESCRIPTION:-Scroll-scrubbed video animation. Scroll down to play forward, scroll up to play backward.}"
 
-# HTML-encode values before inserting (basic: & < > " ')
 html_escape() {
   printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
 }
 ESC_TITLE=$(html_escape "$DISPLAY_TITLE")
 ESC_DESC=$(html_escape "$DISPLAY_DESC")
 
-# sed delimiter collision: WRAP_CSS and BG_STYLE contain no control chars;
-# NAME is sanitized above. DESC/TITLE go through html_escape which strips HTML-breaking chars.
-# We use \x01 as a delimiter to avoid collisions with |, /, #, &, etc.
-python3 - "$TEMPLATE_PATH" "$OUT/index.html" <<PYEOF
+# Pick a python (python3 or python)
+PYBIN=""
+if command -v python3 >/dev/null; then PYBIN="python3"
+elif command -v python >/dev/null; then PYBIN="python"
+else
+  echo "python or python3 required for template substitution" >&2
+  exit 1
+fi
+
+"$PYBIN" - "$TEMPLATE_PATH" "$OUT/index.html" <<PYEOF
 import sys
 src, dst = sys.argv[1], sys.argv[2]
 subs = {
@@ -262,16 +339,50 @@ subs = {
 with open(src, "r") as f: html = f.read()
 for k, v in subs.items(): html = html.replace(k, v)
 with open(dst, "w") as f: f.write(html)
-print(f"  → wrote {dst}")
 PYEOF
+
+echo "[6/6] writing build-info.json..."
+VIDEO_BASENAME=$(basename "$VIDEO")
+cat > "$OUT/build-info.json" <<JSON
+{
+  "name": "$NAME",
+  "title": "$DISPLAY_TITLE",
+  "source_video": "$VIDEO_BASENAME",
+  "source_dimensions": "${W_SRC}x${H_SRC}",
+  "source_duration_seconds": ${DUR_INT:-0},
+  "orientation": "$ORIENT",
+  "template": "$TEMPLATE",
+  "fps": $FPS,
+  "frame_count": $FRAME_COUNT,
+  "frame_extension": "$EXT",
+  "frame_width_px": $WIDTH,
+  "payload_size": "$SIZE",
+  "transparent": $([[ "$TRANSPARENT" == "1" ]] && echo "true" || echo "false"),
+  "background_override": $([[ -n "$BG" || -n "$BG_IMAGE" ]] && echo "true" || echo "false"),
+  "generated_by": "scroll-scrub-starter"
+}
+JSON
 
 echo ""
 echo "✓ done → $OUT"
 echo "  template: $TEMPLATE / orientation: $ORIENT / $FRAME_COUNT frames / $SIZE"
 echo ""
-echo "preview locally:"
-echo "  cd $OUT && python3 -m http.server 8000"
-echo ""
-echo "deploy:"
-echo "  cd $OUT && vercel --yes             # Vercel"
-echo "  or upload the folder to any static host (Netlify, GitHub Pages, S3, etc.)"
+
+# Optional deploy step
+if [[ "$DEPLOY" == "1" ]]; then
+  if command -v vercel >/dev/null && vercel whoami >/dev/null 2>&1; then
+    echo "deploying to Vercel..."
+    ( cd "$OUT" && vercel --yes --prod 2>&1 | tail -6 )
+  else
+    echo "(--deploy requested but vercel is not installed/authed)"
+    echo "to deploy manually:"
+    echo "  cd $OUT && vercel --yes --prod"
+  fi
+else
+  echo "preview locally:"
+  echo "  cd $OUT && python3 -m http.server 8000"
+  echo ""
+  echo "deploy:"
+  echo "  cd $OUT && vercel --yes"
+  echo "  or upload the folder to any static host (Netlify, GitHub Pages, S3, Cloudflare Pages)"
+fi
