@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{{NAME}}</title>
+<meta name="description" content="Edge Esmeralda 2026. Scroll to build a city from an empty field. A blueprint microsite demo." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #e8f1ff;
+    --ink-soft: rgba(232, 241, 255, 0.62);
+    --ink-faint: rgba(232, 241, 255, 0.22);
+    --paper: #0a1f3d;
+    --paper-deep: #060f24;
+    --cyan: #6bc1ff;
+    --accent: #ff7a4d;
+    --line: rgba(232, 241, 255, 0.14);
+    --line-strong: rgba(232, 241, 255, 0.38);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 400;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(rgba(107, 193, 255, 0.14) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(107, 193, 255, 0.14) 1px, transparent 1px),
+      linear-gradient(rgba(107, 193, 255, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(107, 193, 255, 0.06) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+    background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+    position: relative;
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(ellipse at 20% 0%, rgba(107, 193, 255, 0.08), transparent 50%),
+                      radial-gradient(ellipse at 80% 100%, rgba(255, 122, 77, 0.06), transparent 50%);
+    z-index: 1;
+  }
+  .grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.18;
+    z-index: 2;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.9 0 0 0 0 0.95 0 0 0 0 1 0 0 0 0.5 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+    mix-blend-mode: overlay;
+  }
+  .mono { font-family: "JetBrains Mono", monospace; }
+
+  /* Top status bar */
+  .statusbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ink-soft);
+    background: linear-gradient(to bottom, rgba(6,15,36,0.85), rgba(6,15,36,0));
+    backdrop-filter: blur(6px);
+    z-index: 20;
+    border-bottom: 1px solid var(--line);
+  }
+  .statusbar .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-right: 8px;
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .statusbar-seg { display: flex; align-items: center; gap: 20px; }
+  .statusbar-seg .sep { color: var(--ink-faint); }
+
+  /* Hero */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px 60px;
+    z-index: 3;
+    text-align: center;
+  }
+  .hero-eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    color: var(--cyan);
+    margin-bottom: 32px;
+  }
+  .hero-eyebrow::before,
+  .hero-eyebrow::after {
+    content: "";
+    display: inline-block;
+    width: 28px;
+    height: 1px;
+    background: var(--ink-faint);
+    vertical-align: middle;
+    margin: 0 14px;
+  }
+  .hero-title {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    font-size: clamp(56px, 11vw, 180px);
+    line-height: 0.92;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    margin-bottom: 24px;
+  }
+  .hero-title span { color: var(--cyan); }
+  .hero-sub {
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 400;
+    font-size: clamp(13px, 1.5vw, 18px);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    max-width: 720px;
+    margin-bottom: 48px;
+  }
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0;
+    margin-top: auto;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--ink-soft);
+  }
+  .hero-meta > div {
+    padding: 0 20px;
+    border-right: 1px solid var(--line);
+  }
+  .hero-meta > div:last-child { border-right: none; }
+  .hero-meta label {
+    display: block;
+    color: var(--ink-faint);
+    font-size: 9px;
+    margin-bottom: 4px;
+  }
+  .scroll-cue {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.35em;
+    color: var(--cyan);
+    animation: bounce 2.4s ease-in-out infinite;
+  }
+  @keyframes bounce {
+    0%,100% { transform: translate(-50%, 0); opacity: 0.5; }
+    50% { transform: translate(-50%, 8px); opacity: 1; }
+  }
+  .hero::before, .hero::after,
+  .hero .corner-tl, .hero .corner-tr {
+    position: absolute;
+    width: 20px; height: 20px;
+    border-color: var(--line-strong);
+    border-style: solid;
+    border-width: 0;
+  }
+  .hero::before { top: 56px; left: 20px; border-top-width: 1px; border-left-width: 1px; content: ""; }
+  .hero::after { top: 56px; right: 20px; border-top-width: 1px; border-right-width: 1px; content: ""; }
+  .hero .corner-bl { bottom: 20px; left: 20px; border-bottom-width: 1px; border-left-width: 1px; }
+  .hero .corner-br { bottom: 20px; right: 20px; border-bottom-width: 1px; border-right-width: 1px; }
+
+  /* Sticky stage wrapper */
+  .stage-wrapper {
+    position: relative;
+    height: 600vh;
+    z-index: 3;
+  }
+  .stage {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 40px;
+  }
+  .canvas-wrap {
+    position: relative;
+    width: min(78vw, 78vh);
+    {{WRAP_CSS}}
+    max-height: 78vh;
+    background: transparent;
+    overflow: visible;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Poetic text layer behind video */
+  .poetry {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .poetry-line {
+    position: absolute;
+    font-family: "Inter", sans-serif;
+    font-weight: 200;
+    font-size: clamp(44px, 9vw, 140px);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    color: var(--cyan);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 600ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    text-align: center;
+    white-space: nowrap;
+    mix-blend-mode: screen;
+    text-shadow: 0 0 60px rgba(107, 193, 255, 0.3);
+  }
+  .poetry-line em {
+    font-style: normal;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .poetry-line.active {
+    opacity: 0.95;
+    transform: translateY(0);
+  }
+
+  /* Blueprint overlay on canvas */
+  .overlay-crosshair {
+    position: absolute;
+    width: 24px; height: 24px;
+    pointer-events: none;
+    border-color: var(--cyan);
+    border-style: solid;
+    border-width: 0;
+  }
+  .overlay-crosshair.tl { top: -1px; left: -1px; border-top-width: 1px; border-left-width: 1px; }
+  .overlay-crosshair.tr { top: -1px; right: -1px; border-top-width: 1px; border-right-width: 1px; }
+  .overlay-crosshair.bl { bottom: -1px; left: -1px; border-bottom-width: 1px; border-left-width: 1px; }
+  .overlay-crosshair.br { bottom: -1px; right: -1px; border-bottom-width: 1px; border-right-width: 1px; }
+
+  .stage-label-tl {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    color: var(--cyan);
+    pointer-events: none;
+  }
+  .stage-label-tr {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    color: var(--ink-soft);
+    pointer-events: none;
+    text-align: right;
+  }
+  .stage-label-br {
+    position: absolute;
+    bottom: 14px;
+    right: 14px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    color: var(--ink-soft);
+    pointer-events: none;
+  }
+
+  /* Left-side annotation panel */
+  .annotations {
+    position: fixed;
+    left: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    pointer-events: none;
+    z-index: 5;
+    max-width: 180px;
+  }
+  .anno {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 0 14px 18px;
+    border-left: 1px solid var(--line);
+    color: var(--ink-faint);
+    transition: all 450ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .anno.active {
+    color: var(--ink);
+    border-left-color: var(--cyan);
+    padding-left: 22px;
+  }
+  .anno .marker {
+    font-size: 10px;
+    letter-spacing: 0.26em;
+    color: var(--cyan);
+    opacity: 0.55;
+    transition: opacity 450ms ease;
+  }
+  .anno.active .marker { opacity: 1; }
+  .anno .text {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+
+  /* Right-side vertical progress ruler */
+  .ruler {
+    position: fixed;
+    right: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 320px;
+    width: 40px;
+    pointer-events: none;
+    z-index: 5;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    color: var(--ink-faint);
+  }
+  .ruler-track {
+    position: absolute;
+    right: 10px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--line);
+  }
+  .ruler-fill {
+    position: absolute;
+    right: 10px;
+    top: 0;
+    width: 1px;
+    background: var(--cyan);
+    height: 0%;
+    box-shadow: 0 0 8px var(--cyan);
+    transition: height 120ms linear;
+  }
+  .ruler-tick {
+    position: absolute;
+    right: 14px;
+    text-align: right;
+    width: 34px;
+    transform: translateY(-50%);
+  }
+  .ruler-tick::before {
+    content: "";
+    position: absolute;
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 1px;
+    background: var(--line-strong);
+  }
+
+  /* Loader */
+  .loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(6, 15, 36, 0.92);
+    pointer-events: none;
+    transition: opacity 400ms ease;
+    z-index: 4;
+  }
+  .loader.hidden { opacity: 0; }
+  .loader-inner { text-align: center; font-family: "JetBrains Mono", monospace; }
+  .loader-label {
+    font-size: 10px;
+    letter-spacing: 0.4em;
+    color: var(--ink-faint);
+    margin-bottom: 14px;
+  }
+  .loader-bar {
+    width: 180px;
+    height: 1px;
+    background: var(--line);
+    position: relative;
+    margin: 0 auto 14px;
+  }
+  .loader-bar-fill {
+    position: absolute;
+    left: 0; top: 0;
+    height: 100%;
+    background: var(--cyan);
+    box-shadow: 0 0 10px var(--cyan);
+    width: 0%;
+    transition: width 120ms linear;
+  }
+  .loader-pct {
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    color: var(--cyan);
+  }
+
+  /* Spec sheet */
+  .specs {
+    position: relative;
+    padding: 140px 40px 80px;
+    max-width: 1100px;
+    margin: 0 auto;
+    z-index: 3;
+  }
+  .specs-header {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    margin-bottom: 60px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .specs-header .fig {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: var(--cyan);
+  }
+  .specs-header h3 {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    font-size: clamp(32px, 5vw, 56px);
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .spec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0;
+    border-top: 1px solid var(--line);
+  }
+  .spec-item {
+    padding: 28px 24px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .spec-item label {
+    display: block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--ink-faint);
+    margin-bottom: 10px;
+  }
+  .spec-item .val {
+    font-family: "Inter", sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+  .spec-item .sub {
+    display: block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    color: var(--ink-soft);
+    margin-top: 6px;
+    text-transform: uppercase;
+  }
+
+  /* CTA */
+  .cta {
+    position: relative;
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 80px 40px;
+    z-index: 3;
+  }
+  .cta-eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    color: var(--cyan);
+    margin-bottom: 28px;
+  }
+  .cta h3 {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    font-size: clamp(48px, 9vw, 128px);
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+    margin-bottom: 40px;
+  }
+  .cta h3 span { color: var(--cyan); }
+  .cta-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 36px;
+    border: 1px solid var(--line-strong);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    color: var(--ink);
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: all 300ms ease;
+    position: relative;
+  }
+  .cta-link:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(107, 193, 255, 0.06);
+  }
+  .cta-link .arrow {
+    transition: transform 300ms ease;
+  }
+  .cta-link:hover .arrow { transform: translateX(6px); }
+
+  /* Footer */
+  .footer {
+    position: relative;
+    padding: 40px;
+    text-align: center;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--ink-faint);
+    border-top: 1px solid var(--line);
+    z-index: 3;
+  }
+  .footer a { color: var(--ink-soft); text-decoration: none; }
+  .footer a:hover { color: var(--cyan); }
+
+  /* Reveal on scroll */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 800ms ease, transform 800ms ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .annotations { display: none; }
+    .ruler { display: none; }
+    .canvas-wrap { width: 88vw; height: 88vw; }
+    .statusbar { font-size: 9px; padding: 0 12px; }
+    .statusbar-seg { gap: 10px; }
+    .statusbar-seg .hide-mobile { display: none; }
+    .hero-meta > div { padding: 0 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+
+<!-- Top status bar -->
+<div class="statusbar">
+  <div class="statusbar-seg">
+    <span><span class="dot"></span>LIVE SHEET</span>
+    <span class="sep">/</span>
+    <span class="hide-mobile">DRAWING N° 001</span>
+  </div>
+  <div class="statusbar-seg">
+    <span>REV A</span>
+    <span class="sep">/</span>
+    <span class="hide-mobile">SCALE 1:1</span>
+    <span class="sep">/</span>
+    <span>EE · 26</span>
+  </div>
+</div>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="corner-bl"></div>
+  <div class="corner-br"></div>
+  <div class="hero-eyebrow">EDGE ESMERALDA 2026</div>
+  <h1 class="hero-title">A Blueprint<br>For A <span>Five-Week</span><br>Society</h1>
+  <p class="hero-sub">Scroll to build a popup city from an empty field in Healdsburg, California</p>
+  <div class="hero-meta">
+    <div><label>Site</label>Healdsburg / CA</div>
+    <div><label>Dates</label>27 May / 30 Jun 2026</div>
+    <div><label>Format</label>5-week residency</div>
+    <div><label>Sheet</label>001 of 001</div>
+  </div>
+  <div class="scroll-cue">↓ SCROLL TO BUILD</div>
+</section>
+
+<!-- Sticky scroll-scrub stage -->
+<div class="stage-wrapper" id="stageWrap">
+  <div class="stage">
+    <div class="canvas-wrap">
+      <canvas id="canvas"></canvas>
+
+      <div class="overlay-crosshair tl"></div>
+      <div class="overlay-crosshair tr"></div>
+      <div class="overlay-crosshair bl"></div>
+      <div class="overlay-crosshair br"></div>
+
+      <div class="poetry" id="poetry">
+        <div class="poetry-line" data-start="0" data-end="0.22">an <em>empty</em> field</div>
+        <div class="poetry-line" data-start="0.22" data-end="0.48">a <em>village</em> appears</div>
+        <div class="poetry-line" data-start="0.48" data-end="0.74">a <em>society</em> forms</div>
+        <div class="poetry-line" data-start="0.74" data-end="1.01">and then <em>disperses</em></div>
+      </div>
+
+      <div class="stage-label-tl">FIG. 01 / CITY PROTOTYPE</div>
+      <div class="stage-label-tr" id="frameCounter">FRAME 001 / 241</div>
+      <div class="stage-label-br">SCALE 1:1 / ISO VIEW</div>
+
+      <div class="loader" id="loader">
+        <div class="loader-inner">
+          <div class="loader-label">ASSEMBLING</div>
+          <div class="loader-bar"><div class="loader-bar-fill" id="loaderBar"></div></div>
+          <div class="loader-pct" id="loaderPct">0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Side annotations -->
+  <div class="annotations" id="annotations">
+    <div class="anno" data-start="0" data-end="0.22">
+      <span class="marker">00 / DAY 00</span>
+      <span class="text">Ground zero empty field</span>
+    </div>
+    <div class="anno" data-start="0.22" data-end="0.48">
+      <span class="marker">01 / WEEK 01</span>
+      <span class="text">First builders arrive</span>
+    </div>
+    <div class="anno" data-start="0.48" data-end="0.74">
+      <span class="marker">02 / WEEK 03</span>
+      <span class="text">City forms, density rises</span>
+    </div>
+    <div class="anno" data-start="0.74" data-end="1.01">
+      <span class="marker">03 / WEEK 05</span>
+      <span class="text">Society lives, then disperses</span>
+    </div>
+  </div>
+
+  <!-- Progress ruler -->
+  <div class="ruler" id="ruler">
+    <div class="ruler-track"></div>
+    <div class="ruler-fill" id="rulerFill"></div>
+    <div class="ruler-tick" style="top: 0%;">000</div>
+    <div class="ruler-tick" style="top: 25%;">025</div>
+    <div class="ruler-tick" style="top: 50%;">050</div>
+    <div class="ruler-tick" style="top: 75%;">075</div>
+    <div class="ruler-tick" style="top: 100%;">100</div>
+  </div>
+</div>
+
+<!-- Spec sheet -->
+<section class="specs">
+  <div class="specs-header reveal">
+    <span class="fig">FIG. 02</span>
+    <h3>SPECIFICATIONS</h3>
+  </div>
+  <div class="spec-grid reveal">
+    <div class="spec-item">
+      <label>SITE</label>
+      <div class="val">Healdsburg</div>
+      <span class="sub">Sonoma County, CA</span>
+    </div>
+    <div class="spec-item">
+      <label>DURATION</label>
+      <div class="val">5 Weeks</div>
+      <span class="sub">27 May / 30 Jun 2026</span>
+    </div>
+    <div class="spec-item">
+      <label>FORMAT</label>
+      <div class="val">Popup Village</div>
+      <span class="sub">Residency + programming</span>
+    </div>
+    <div class="spec-item">
+      <label>RESIDENTS</label>
+      <div class="val">Builders / Researchers / Founders</div>
+      <span class="sub">By application</span>
+    </div>
+    <div class="spec-item">
+      <label>OUTPUTS</label>
+      <div class="val">Prototypes, Companies, Papers, Ideas</div>
+      <span class="sub">Seeded during residency</span>
+    </div>
+    <div class="spec-item">
+      <label>STATUS</label>
+      <div class="val">Tickets On Sale</div>
+      <span class="sub">Apply via site</span>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="cta-eyebrow reveal">JOIN THE BUILD</div>
+  <h3 class="reveal">From <span>blueprint</span><br>to city.</h3>
+  <a class="cta-link reveal" href="https://edgeesmeralda.com" target="_blank" rel="noopener">
+    edgeesmeralda.com
+    <span class="arrow">→</span>
+  </a>
+</section>
+
+<footer class="footer">
+  EE · 26 / A PROTOTYPE MICROSITE / IMAGE SEQUENCE BY SEEDANCE
+</footer>
+
+<script>
+(() => {
+  const FRAME_COUNT = {{FRAME_COUNT}};
+  const FRAME_PAD = 4;
+  const FRAME_PATH = (i) => `/frames/f_${String(i + 1).padStart(FRAME_PAD, '0')}.{{FRAME_EXT}}`;
+  const CONCURRENCY = 6;
+
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const loader = document.getElementById('loader');
+  const loaderPct = document.getElementById('loaderPct');
+  const loaderBar = document.getElementById('loaderBar');
+  const frameCounter = document.getElementById('frameCounter');
+  const rulerFill = document.getElementById('rulerFill');
+  const annotations = [...document.querySelectorAll('#annotations .anno')];
+  const poetryLines = [...document.querySelectorAll('#poetry .poetry-line')];
+
+  const frames = new Array(FRAME_COUNT);
+  let loadedCount = 0;
+  let currentFrame = -1;
+  let rafScheduled = false;
+
+  function drawFrame(index) {
+    const img = frames[index];
+    if (!img || !img.complete || img.naturalWidth === 0) return;
+    const cw = canvas.width;
+    const ch = canvas.height;
+    const ir = img.naturalWidth / img.naturalHeight;
+    const cr = cw / ch;
+    let dw = cw, dh = ch, dx = 0, dy = 0;
+    if (ir > cr) { dh = ch; dw = ch * ir; dx = (cw - dw) / 2; }
+    else { dw = cw; dh = cw / ir; dy = (ch - dh) / 2; }
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.drawImage(img, dx, dy, dw, dh);
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.max(1, Math.round(rect.width * dpr));
+    canvas.height = Math.max(1, Math.round(rect.height * dpr));
+    if (currentFrame >= 0) drawFrame(currentFrame);
+  }
+
+  function updateAnnotations(progress) {
+    annotations.forEach((a) => {
+      const s = parseFloat(a.dataset.start);
+      const e = parseFloat(a.dataset.end);
+      if (progress >= s && progress < e) a.classList.add('active');
+      else a.classList.remove('active');
+    });
+    poetryLines.forEach((p) => {
+      const s = parseFloat(p.dataset.start);
+      const e = parseFloat(p.dataset.end);
+      if (progress >= s && progress < e) p.classList.add('active');
+      else p.classList.remove('active');
+    });
+  }
+
+  function onScroll() {
+    if (rafScheduled) return;
+    rafScheduled = true;
+    requestAnimationFrame(() => {
+      rafScheduled = false;
+      const stageWrap = document.getElementById('stageWrap');
+      const rect = stageWrap.getBoundingClientRect();
+      const wrapTop = rect.top + window.scrollY;
+      const wrapH = stageWrap.offsetHeight;
+      const winH = window.innerHeight;
+      const scrollable = wrapH - winH;
+      const rawProgress = (window.scrollY - wrapTop) / scrollable;
+      const progress = Math.min(1, Math.max(0, rawProgress));
+      const index = Math.min(FRAME_COUNT - 1, Math.floor(progress * (FRAME_COUNT - 1)));
+      if (index !== currentFrame) {
+        currentFrame = index;
+        drawFrame(index);
+        frameCounter.textContent = `FRAME ${String(index + 1).padStart(3, '0')} / ${FRAME_COUNT}`;
+      }
+      rulerFill.style.height = (progress * 100).toFixed(1) + '%';
+      updateAnnotations(progress);
+    });
+  }
+
+  function loadOne(i) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      frames[i] = img;
+      const done = () => {
+        loadedCount += 1;
+        const pct = Math.round((loadedCount / FRAME_COUNT) * 100);
+        loaderPct.textContent = pct + '%';
+        loaderBar.style.width = pct + '%';
+        if (i === 0) { currentFrame = 0; drawFrame(0); }
+        if (loadedCount === FRAME_COUNT) {
+          loader.classList.add('hidden');
+          setTimeout(() => { loader.style.display = 'none'; }, 420);
+        }
+        resolve();
+      };
+      img.onload = done;
+      img.onerror = done;
+      img.src = FRAME_PATH(i);
+    });
+  }
+
+  async function preload() {
+    let next = 1;
+    await loadOne(0);
+    const workers = [];
+    for (let w = 0; w < CONCURRENCY; w++) {
+      workers.push((async () => {
+        while (true) {
+          const i = next++;
+          if (i >= FRAME_COUNT) return;
+          await loadOne(i);
+        }
+      })());
+    }
+    await Promise.all(workers);
+  }
+
+  // Reveal on scroll
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) e.target.classList.add('visible');
+    });
+  }, { threshold: 0.2 });
+  document.querySelectorAll('.reveal').forEach((el) => revealObserver.observe(el));
+
+  resize();
+  window.addEventListener('resize', resize);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  preload();
+})();
+</script>
+
+</body>
+</html>

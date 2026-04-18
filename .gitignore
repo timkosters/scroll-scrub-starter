@@ -1,0 +1,5 @@
+.DS_Store
+node_modules/
+.vercel/
+# User-generated project output appears as sibling dirs when they run build.sh
+# They can commit/gitignore those themselves.
